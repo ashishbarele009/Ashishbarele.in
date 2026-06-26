@@ -14,8 +14,8 @@ export interface CloudinaryResponse {
 }
 
 export const uploadToCloudinary = async (file: File): Promise<CloudinaryResponse> => {
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'doupwfrsw';
+  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ashishbarele_upload';
 
   if (!cloudName || !uploadPreset) {
     throw new Error('Cloudinary configuration is missing. Please check your environment variables.');
