@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'ashishbarele09@gmail.com';
+    }
+
+    // Public Collections (Read: Anyone, Write: Admin)
+    match /settings/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /hero/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /songs/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /videos/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /gallery/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /biography/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /about/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /images/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /seo/{docId} { allow read: if true; allow write: if isAdmin(); }
+
+    // Contact Collection (Create: Anyone, Read/Update/Delete: Admin)
+    match /contact/{docId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+  }
+}

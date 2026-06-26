@@ -1,0 +1,115 @@
+{
+  "collections": {
+    "settings": {
+      "description": "General website settings",
+      "fields": {
+        "siteName": "string",
+        "logoUrl": "string"
+      }
+    },
+    "hero": {
+      "description": "Hero section content",
+      "fields": {
+        "title": "string",
+        "subtitle": "string",
+        "description": "string",
+        "imageUrl": "string",
+        "backgroundUrl": "string"
+      }
+    },
+    "songs": {
+      "description": "Music collection",
+      "fields": {
+        "title": "string",
+        "coverUrl": "string",
+        "releaseDate": "timestamp",
+        "description": "string",
+        "spotifyUrl": "string",
+        "youtubeUrl": "string",
+        "lyrics": "string",
+        "order": "number"
+      }
+    },
+    "videos": {
+      "description": "Video collection",
+      "fields": {
+        "title": "string",
+        "thumbnailUrl": "string",
+        "youtubeUrl": "string",
+        "description": "string",
+        "releaseDate": "timestamp",
+        "order": "number"
+      }
+    },
+    "gallery": {
+      "description": "Image gallery",
+      "fields": {
+        "imageUrl": "string",
+        "altText": "string",
+        "category": "string",
+        "createdAt": "timestamp",
+        "order": "number"
+      }
+    },
+    "biography": {
+      "description": "Artist biography",
+      "fields": {
+        "content": "string",
+        "profileImageUrl": "string",
+        "timeline": "array",
+        "occupation": "array",
+        "genres": "array",
+        "languages": "array",
+        "achievements": "array"
+      }
+    },
+    "about": {
+      "description": "About page content",
+      "fields": {
+        "mission": "string",
+        "vision": "string",
+        "story": "string",
+        "goals": "string",
+        "future": "string"
+      }
+    },
+    "contact": {
+      "description": "Contact form submissions",
+      "fields": {
+        "name": "string",
+        "email": "string",
+        "subject": "string",
+        "message": "string",
+        "createdAt": "timestamp",
+        "status": "string"
+      }
+    },
+    "images": {
+      "description": "Cloudinary image management",
+      "fields": {
+        "secureUrl": "string",
+        "publicId": "string",
+        "page": "string",
+        "section": "string",
+        "title": "string",
+        "alt": "string",
+        "createdAt": "timestamp"
+      }
+    },
+    "seo": {
+      "description": "SEO settings",
+      "fields": {
+        "metaTitle": "string",
+        "metaDescription": "string",
+        "keywords": "string",
+        "ogImage": "string",
+        "twitterCard": "string",
+        "structuredData": "string",
+        "robots": "string",
+        "sitemap": "string",
+        "canonicalUrl": "string"
+      }
+    }
+  },
+  "rules": "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    \n    // Default deny catch-all\n    match /{document=**} {\n      allow read, write: if false;\n    }\n\n    function isSignedIn() {\n      return request.auth != null;\n    }\n\n    function isAdmin() {\n      return isSignedIn() && request.auth.token.email == 'ashishbarele09@gmail.com';\n    }\n\n    // Public Collections (Read: Anyone, Write: Admin)\n    match /settings/{docId} { allow read: if true; allow write: if isAdmin(); }\n    match /hero/{docId} { allow read: if true; allow write: if isAdmin(); }\n    match /songs/{docId} { allow read: if true; allow write: if isAdmin(); }\n    match /videos/{docId} { allow read: if true; allow write: if isAdmin(); }\n    match /gallery/{docId} { allow read: if true; allow write: if isAdmin(); }\n    match /biography/{docId} { allow read: if true; allow write: if isAdmin(); }\n    match /about/{docId} { allow read: if true; allow write: if isAdmin(); }\n    match /images/{docId} { allow read: if true; allow write: if isAdmin(); }\n    match /seo/{docId} { allow read: if true; allow write: if isAdmin(); }\n\n    // Contact Collection (Create: Anyone, Read/Update/Delete: Admin)\n    match /contact/{docId} {\n      allow create: if true;\n      allow read, update, delete: if isAdmin();\n    }\n  }\n}"
+}

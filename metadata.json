@@ -1,0 +1,6 @@
+{
+  "name": "ASHISHBARELE | Official Website",
+  "description": "Premium official artist website for Ashish Barele featuring music, videos, gallery, and administrative management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
