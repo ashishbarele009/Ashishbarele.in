@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { motion } from 'motion/react';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useFirestoreCollection, useImage } from '../hooks/useFirestore';
-import { Song, Video, HeroContent, BiographyData } from '../types';
-import { ArrowRight, Play, ExternalLink } from 'lucide-react';
+import { Song, Video, HeroContent, BiographyData, GalleryItem } from '../types';
+import { ArrowRight, Play, ExternalLink, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { orderBy, limit } from 'firebase/firestore';
 import SEO from '../components/SEO';
 
@@ -16,10 +17,35 @@ export default function Home() {
   const { data: latestSongs } = useFirestoreCollection<Song>('songs', orderBy('releaseDate', 'desc'), limit(3));
   const { data: latestVideos } = useFirestoreCollection<Video>('videos', orderBy('releaseDate', 'desc'), limit(2));
   const { data: bioData } = useFirestoreCollection<BiographyData>('biography');
+  const { data: galleryItems } = useFirestoreCollection<GalleryItem>('gallery', orderBy('createdAt', 'desc'));
   
   // Real-time image listeners for persistence
   const { data: heroImage } = useImage('Home', 'Hero');
   const { data: bioPreviewImage } = useImage('Biography', 'Profile');
+
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [slideDirection, setSlideDirection] = useState(1); // 1 = next, -1 = prev
+
+  useEffect(() => {
+    if (galleryItems.length <= 1) return;
+    const timer = setInterval(() => {
+      setSlideDirection(1);
+      setCurrentSlide((prev) => (prev + 1) % galleryItems.length);
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [galleryItems.length]);
+
+  const handlePrevSlide = () => {
+    if (galleryItems.length === 0) return;
+    setSlideDirection(-1);
+    setCurrentSlide((prev) => (prev - 1 + galleryItems.length) % galleryItems.length);
+  };
+
+  const handleNextSlide = () => {
+    if (galleryItems.length === 0) return;
+    setSlideDirection(1);
+    setCurrentSlide((prev) => (prev + 1) % galleryItems.length);
+  };
 
   const hero = heroData[0] || {
     title: 'ASHISHBARELE',
@@ -306,6 +332,108 @@ export default function Home() {
             </div>
           </motion.div>
         </div>
+      </section>
+
+      {/* Decorative Divider */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="w-[80px] h-[1px] bg-white/5"></div>
+      </div>
+
+      {/* Live Gallery Slider Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-end mb-12 border-l-4 border-[#FACC15] pl-6">
+          <div>
+            <h2 className="text-[#FACC15] text-xs font-bold tracking-[0.3em] mb-2">LIVE DIARY</h2>
+            <h3 className="text-4xl md:text-6xl font-black tracking-tighter uppercase">Stills in Motion</h3>
+          </div>
+          <Link to="/gallery" className="text-white/40 hover:text-[#FACC15] transition-colors flex items-center gap-2 mb-2 text-[10px] font-bold tracking-widest uppercase">
+            VIEW GALLERY <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        {/* Slider Container */}
+        {galleryItems.length === 0 ? (
+          <div className="w-full h-80 bg-black/40 border border-white/5 rounded-sm flex flex-col items-center justify-center text-gray-500">
+            <ImageIcon size={40} className="mb-4 opacity-20 text-[#FACC15]" />
+            <p className="text-sm font-light uppercase tracking-widest text-white/40">The gallery is currently empty</p>
+          </div>
+        ) : (
+          <div className="relative w-full aspect-[4/3] sm:aspect-video lg:aspect-[21/9] bg-[#111] border border-white/5 rounded-sm overflow-hidden group">
+            {/* Slides using AnimatePresence */}
+            <div className="absolute inset-0 w-full h-full">
+              <AnimatePresence initial={false} custom={slideDirection} mode="wait">
+                <motion.div
+                  key={currentSlide}
+                  custom={slideDirection}
+                  initial={{ x: slideDirection > 0 ? '100%' : '-100%', opacity: 0 }}
+                  animate={{ x: '0%', opacity: 1 }}
+                  exit={{ x: slideDirection > 0 ? '-100%' : '100%', opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 200, damping: 25, opacity: { duration: 0.4 } }}
+                  className="absolute inset-0 w-full h-full"
+                >
+                  <img 
+                    src={galleryItems[currentSlide]?.imageUrl} 
+                    alt={galleryItems[currentSlide]?.altText || 'Artist Moment'} 
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                  {/* Vignette Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+                  
+                  {/* Caption Info */}
+                  <div className="absolute bottom-6 left-6 md:bottom-10 md:left-10 text-left z-10 max-w-md pr-6">
+                    <span className="inline-block px-3 py-1 bg-[#FACC15] text-black text-[9px] font-black tracking-widest uppercase rounded-sm mb-3">
+                      {galleryItems[currentSlide]?.category || 'MOMENT'}
+                    </span>
+                    <h4 className="text-white text-lg md:text-2xl font-black uppercase tracking-tight line-clamp-1">
+                      {galleryItems[currentSlide]?.altText || 'Live on Stage'}
+                    </h4>
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Arrows */}
+            {galleryItems.length > 1 && (
+              <>
+                <button 
+                  onClick={handlePrevSlide}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/60 border border-white/10 hover:border-[#FACC15] hover:bg-black/90 text-white hover:text-[#FACC15] flex items-center justify-center transition-all cursor-pointer opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={20} />
+                </button>
+                <button 
+                  onClick={handleNextSlide}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black/60 border border-white/10 hover:border-[#FACC15] hover:bg-black/90 text-white hover:text-[#FACC15] flex items-center justify-center transition-all cursor-pointer opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </>
+            )}
+
+            {/* Pagination Indicators / Dots */}
+            {galleryItems.length > 1 && (
+              <div className="absolute bottom-6 right-6 md:bottom-10 md:right-10 z-20 flex gap-2">
+                {galleryItems.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setSlideDirection(idx > currentSlide ? 1 : -1);
+                      setCurrentSlide(idx);
+                    }}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      idx === currentSlide 
+                        ? 'bg-[#FACC15] w-6' 
+                        : 'bg-white/30 hover:bg-white/60'
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Contact CTA */}

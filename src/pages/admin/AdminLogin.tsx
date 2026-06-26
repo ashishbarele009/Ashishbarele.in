@@ -33,7 +33,11 @@ export default function AdminLogin() {
       }
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || 'Failed to login with Google.');
+      if (err.code === 'auth/unauthorized-domain') {
+        setError(`Unauthorized Domain: Please add "${window.location.hostname}" to the "Authorized domains" list in your Firebase Console (Authentication > Settings > Authorized domains).`);
+      } else {
+        setError(err.message || 'Failed to login with Google.');
+      }
     } finally {
       setLoading(false);
     }
