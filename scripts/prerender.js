@@ -298,6 +298,7 @@ async function runPrerender() {
     <title>${pageTitle}</title>
     <meta name="description" content="${pageDesc}" />
     <meta name="keywords" content="${pageKeys}" />
+    <meta name="robots" content="index, follow" />
     <link rel="canonical" href="${pageCanonical}" />
     <link rel="icon" href="${branding.faviconUrl || pageImage}" />
     <link rel="shortcut icon" href="${branding.faviconUrl || pageImage}" />

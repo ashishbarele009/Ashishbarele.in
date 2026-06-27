@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 
 const PAGES_DIR = path.resolve(__dirname, '../src/pages');
 const PUBLIC_DIR = path.resolve(__dirname, '../public');
+const DIST_DIR = path.resolve(__dirname, '../dist');
 const SITE_URL = 'https://ashishbarele.in';
 
 // Helper to recursively find all page files
@@ -284,6 +285,12 @@ async function run() {
   fs.writeFileSync(sitemapPath, xml, 'utf8');
   console.log(`✓ Generated sitemap.xml at ${sitemapPath} with ${sitemapItems.length} public URLs.`);
 
+  const distSitemapPath = path.join(DIST_DIR, 'sitemap.xml');
+  if (fs.existsSync(DIST_DIR)) {
+    fs.writeFileSync(distSitemapPath, xml, 'utf8');
+    console.log(`✓ Copied sitemap.xml to ${distSitemapPath}`);
+  }
+
   // Write robots.txt with search engine guidelines and dynamic sitemap reference
   const robotsTxt = `User-agent: *
 Allow: /
@@ -299,6 +306,12 @@ Sitemap: ${SITE_URL}/sitemap.xml
   const robotsPath = path.join(PUBLIC_DIR, 'robots.txt');
   fs.writeFileSync(robotsPath, robotsTxt, 'utf8');
   console.log(`✓ Generated robots.txt at ${robotsPath}`);
+
+  const distRobotsPath = path.join(DIST_DIR, 'robots.txt');
+  if (fs.existsSync(DIST_DIR)) {
+    fs.writeFileSync(distRobotsPath, robotsTxt, 'utf8');
+    console.log(`✓ Copied robots.txt to ${distRobotsPath}`);
+  }
 }
 
 run().catch(err => {
