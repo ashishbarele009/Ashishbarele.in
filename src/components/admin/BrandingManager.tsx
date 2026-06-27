@@ -84,6 +84,7 @@ export default function BrandingManager() {
   const uploadToCloudinaryWithProgress = (
     file: File,
     folder: string,
+    publicId: string,
     onProgress: (progress: number) => void
   ): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -136,6 +137,7 @@ export default function BrandingManager() {
       formData.append('file', file);
       formData.append('upload_preset', uploadPreset);
       formData.append('folder', folder);
+      formData.append('public_id', publicId);
 
       xhr.send(formData);
     });
@@ -164,6 +166,9 @@ export default function BrandingManager() {
       return;
     }
 
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8);
+
     if (type === 'logo') {
       setUploadingLogo(true);
       setLogoProgress(0);
@@ -171,9 +176,11 @@ export default function BrandingManager() {
       setLogoPreview(objectUrl);
       
       try {
+        const uniquePublicId = `logo_${timestamp}_${randomString}`;
         const uploadedUrl = await uploadToCloudinaryWithProgress(
           file, 
           'ashishbarele/branding',
+          uniquePublicId,
           (pct) => setLogoProgress(pct)
         );
         
@@ -206,9 +213,11 @@ export default function BrandingManager() {
       setFaviconPreview(objectUrl);
       
       try {
+        const uniquePublicId = `favicon_${timestamp}_${randomString}`;
         const uploadedUrl = await uploadToCloudinaryWithProgress(
           file, 
           'ashishbarele/branding',
+          uniquePublicId,
           (pct) => setFaviconProgress(pct)
         );
         
