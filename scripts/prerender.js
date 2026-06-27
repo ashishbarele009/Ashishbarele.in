@@ -169,6 +169,13 @@ async function runPrerender() {
       canonical: `${SITE_URL}/videos`
     },
     {
+      route: '/media',
+      title: `Media | ${branding.siteName}`,
+      description: 'Watch official music videos, live performances and behind the scenes of ASHISHBARELE.',
+      keywords: 'Ashish Barele music video, YouTube rap video, live show performance, ASHISHBARELE video',
+      canonical: `${SITE_URL}/media`
+    },
+    {
       route: '/gallery',
       title: `Gallery | ${branding.siteName}`,
       description: 'Official photo gallery of ASHISHBARELE featuring live shows, studio sessions and more.',
