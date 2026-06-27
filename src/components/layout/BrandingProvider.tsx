@@ -62,6 +62,15 @@ export default function BrandingProvider({ children }: { children: React.ReactNo
 
   // Dynamically update favicon and icons when they change in Firestore
   useEffect(() => {
+    if (branding.siteName) {
+      const fullTitle = branding.browserTitle 
+        ? `${branding.siteName} | ${branding.browserTitle}` 
+        : `${branding.siteName} | Official Artist Website`;
+      document.title = fullTitle;
+    }
+  }, [branding.siteName, branding.browserTitle]);
+
+  useEffect(() => {
     if (branding.faviconUrl) {
       const cacheBustedFavicon = `${branding.faviconUrl}?t=${branding.updatedAt || Date.now()}`;
       
