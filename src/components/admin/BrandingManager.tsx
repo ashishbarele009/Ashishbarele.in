@@ -4,12 +4,6 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  ref, 
-  uploadBytes, 
-  getDownloadURL, 
-  deleteObject 
-} from 'firebase/storage';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { 
   Save, 
@@ -23,7 +17,7 @@ import {
   Sparkles,
   RefreshCw
 } from 'lucide-react';
-import { db, storage } from '../../lib/firebase';
+import { db } from '../../lib/firebase';
 
 export interface BrandingData {
   siteName: string;
@@ -46,9 +40,11 @@ export default function BrandingManager() {
   // Upload states
   const [logoPreview, setLogoPreview] = useState<string>('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoProgress, setLogoProgress] = useState<number | null>(null);
 
   const [faviconPreview, setFaviconPreview] = useState<string>('');
   const [uploadingFavicon, setUploadingFavicon] = useState(false);
+  const [faviconProgress, setFaviconProgress] = useState<number | null>(null);
 
   // Status notifications
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -85,6 +81,66 @@ export default function BrandingManager() {
     }, 6000);
   };
 
+  const uploadToCloudinaryWithProgress = (
+    file: File,
+    folder: string,
+    onProgress: (progress: number) => void
+  ): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'doupwfrsw';
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'ashishbarele_upload';
+
+      if (!cloudName || !uploadPreset) {
+        reject(new Error('Cloudinary configuration is missing. Please check your environment variables.'));
+        return;
+      }
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, true);
+
+      // Track progress
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          onProgress(percentComplete);
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.secure_url) {
+              resolve(response.secure_url);
+            } else {
+              reject(new Error('Failed to retrieve secure URL from Cloudinary.'));
+            }
+          } catch (e) {
+            reject(new Error('Failed to parse Cloudinary response.'));
+          }
+        } else {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            reject(new Error(response.error?.message || 'Upload to Cloudinary failed.'));
+          } catch (e) {
+            reject(new Error(`Upload failed with status code ${xhr.status}`));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error during Cloudinary upload.'));
+      };
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', uploadPreset);
+      formData.append('folder', folder);
+
+      xhr.send(formData);
+    });
+  };
+
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>, 
     type: 'logo' | 'favicon'
@@ -110,15 +166,15 @@ export default function BrandingManager() {
 
     if (type === 'logo') {
       setUploadingLogo(true);
+      setLogoProgress(0);
       const objectUrl = URL.createObjectURL(file);
       setLogoPreview(objectUrl);
       
       try {
-        const fileExt = file.name.split('.').pop() || 'png';
-        
-        const uploadedUrl = await performUpload(
+        const uploadedUrl = await uploadToCloudinaryWithProgress(
           file, 
-          `branding/logo_${Date.now()}.${fileExt}`
+          'ashishbarele/branding',
+          (pct) => setLogoProgress(pct)
         );
         
         // Save to firestore immediately
@@ -141,18 +197,19 @@ export default function BrandingManager() {
         setLogoPreview(branding.logoUrl); // revert
       } finally {
         setUploadingLogo(false);
+        setLogoProgress(null);
       }
     } else {
       setUploadingFavicon(true);
+      setFaviconProgress(0);
       const objectUrl = URL.createObjectURL(file);
       setFaviconPreview(objectUrl);
       
       try {
-        const fileExt = file.name.split('.').pop() || 'ico';
-        
-        const uploadedUrl = await performUpload(
+        const uploadedUrl = await uploadToCloudinaryWithProgress(
           file, 
-          `branding/favicon_${Date.now()}.${fileExt}`
+          'ashishbarele/branding',
+          (pct) => setFaviconProgress(pct)
         );
         
         // Save to firestore immediately
@@ -175,18 +232,9 @@ export default function BrandingManager() {
         setFaviconPreview(branding.faviconUrl); // revert
       } finally {
         setUploadingFavicon(false);
+        setFaviconProgress(null);
       }
     }
-  };
-
-  // Upload runner helper using robust uploadBytes to completely bypass preflight OPTIONS/resumable hangs
-  const performUpload = async (
-    file: File | Blob, 
-    pathName: string
-  ): Promise<string> => {
-    const fileRef = ref(storage, pathName);
-    const snapshot = await uploadBytes(fileRef, file);
-    return await getDownloadURL(snapshot.ref);
   };
 
   const handleSaveAll = async (e: React.FormEvent) => {
@@ -344,7 +392,7 @@ export default function BrandingManager() {
               <Sparkles size={16} /> Instant Live Updates
             </h5>
             <p className="text-xs text-gray-400 leading-relaxed">
-              Updating your branding does not require any website code redeployments. Changes write directly to Firestore and Firebase Storage, and are pushed in real-time to all live users on your site via snapshot listener syncing.
+              Updating your branding does not require any website code redeployments. Changes write directly to Firestore and Cloudinary, and are pushed in real-time to all live users on your site via snapshot listener syncing.
             </p>
           </div>
         </div>
@@ -368,7 +416,10 @@ export default function BrandingManager() {
                   {uploadingLogo && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center rounded-2xl p-4">
                       <Loader2 className="animate-spin text-yellow-500 mb-2" size={24} />
-                      <span className="text-[10px] text-gray-400 mt-1 font-mono">Uploading Logo...</span>
+                      <div className="w-40 bg-white/10 h-1.5 rounded-full overflow-hidden mb-1">
+                        <div className="bg-yellow-500 h-full transition-all duration-300" style={{ width: `${logoProgress ?? 0}%` }}></div>
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-mono">{logoProgress ?? 0}% Uploaded</span>
                     </div>
                   )}
                 </div>
@@ -434,7 +485,10 @@ export default function BrandingManager() {
                   {uploadingFavicon && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center rounded-2xl p-4">
                       <Loader2 className="animate-spin text-yellow-500 mb-2" size={24} />
-                      <span className="text-[10px] text-gray-400 mt-1 font-mono">Uploading Favicon...</span>
+                      <div className="w-40 bg-white/10 h-1.5 rounded-full overflow-hidden mb-1">
+                        <div className="bg-yellow-500 h-full transition-all duration-300" style={{ width: `${faviconProgress ?? 0}%` }}></div>
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-mono">{faviconProgress ?? 0}% Uploaded</span>
                     </div>
                   )}
                 </div>
