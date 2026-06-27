@@ -1,6 +1,8 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -103,6 +105,88 @@ async function run() {
     fs.mkdirSync(PUBLIC_DIR, { recursive: true });
   }
 
+  // Attempt to fetch the latest profile image URL from Firestore with a resilient 2-second timeout
+  let profileImageUrl = '';
+  let imageUpdatedAt = Date.now();
+  try {
+    const configPath = path.resolve(__dirname, '../firebase-applet-config.json');
+    if (fs.existsSync(configPath)) {
+      const firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+      
+      // Wrap database fetch in a promise so we can enforce a fast build-time timeout
+      const fetchImagePromise = (async () => {
+        const q = query(
+          collection(db, 'images'),
+          where('pageName', '==', 'Biography'),
+          where('sectionName', '==', 'Profile')
+        );
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          const docData = querySnapshot.docs[0].data();
+          if (docData.secure_url) {
+            return {
+              url: docData.secure_url,
+              updatedAt: docData.updatedAt?.seconds 
+                ? docData.updatedAt.seconds * 1000 
+                : new Date(docData.updatedAt).getTime() || Date.now()
+            };
+          }
+        }
+        
+        // Fallback to biography collection
+        const bioQ = query(collection(db, 'biography'));
+        const bioSnapshot = await getDocs(bioQ);
+        if (!bioSnapshot.empty) {
+          const bioData = bioSnapshot.docs[0].data();
+          if (bioData.profileImageUrl) {
+            return {
+              url: bioData.profileImageUrl,
+              updatedAt: bioData.updatedAt?.seconds
+                ? bioData.updatedAt.seconds * 1000
+                : new Date(bioData.updatedAt).getTime() || Date.now()
+            };
+          }
+        }
+        return null;
+      })();
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Firestore fetch timed out (2s limit)')), 2000)
+      );
+
+      const result = await Promise.race([fetchImagePromise, timeoutPromise]);
+      if (result) {
+        profileImageUrl = result.url;
+        imageUpdatedAt = result.updatedAt;
+        console.log(`Successfully fetched Cloudinary Profile Image URL for sitemap: ${profileImageUrl}`);
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch dynamic profile image from Firestore for sitemap. Falling back to default tags. Error:', err.message);
+  }
+
+  // Resolve versioned URL to avoid Google caching
+  let versionedProfileImageUrl = '';
+  if (profileImageUrl) {
+    let secureUrl = profileImageUrl.replace(/^http:/i, 'https:');
+    secureUrl = secureUrl.split('?')[0];
+    if (secureUrl.includes('/image/upload/')) {
+      const parts = secureUrl.split('/image/upload/');
+      const pathAfterUpload = parts[1];
+      const versionMatch = pathAfterUpload.match(/^v\d+\//);
+      if (versionMatch) {
+        const newPath = pathAfterUpload.replace(/^v\d+\//, `v${imageUpdatedAt}/`);
+        versionedProfileImageUrl = `${parts[0]}/image/upload/${newPath}`;
+      } else {
+        versionedProfileImageUrl = `${parts[0]}/image/upload/v${imageUpdatedAt}/${pathAfterUpload}`;
+      }
+    } else {
+      versionedProfileImageUrl = `${secureUrl}?v=${imageUpdatedAt}`;
+    }
+  }
+
   // Scan pages
   const pageFiles = getPages(PAGES_DIR);
   
@@ -146,9 +230,10 @@ async function run() {
     return a.route.localeCompare(b.route);
   });
 
-  // Build the XML content
+  // Build the XML content with Google Image namespace
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">`;
 
@@ -176,7 +261,19 @@ async function run() {
     <loc>${SITE_URL}${item.route}</loc>
     <lastmod>${item.lastmod}</lastmod>
     <changefreq>${changefreq}</changefreq>
-    <priority>${priority}</priority>
+    <priority>${priority}</priority>`;
+
+    // If root route and we have a versioned profile image, include Google Image Extension
+    if (item.route === '/' && versionedProfileImageUrl) {
+      xml += `
+    <image:image>
+      <image:loc>${versionedProfileImageUrl}</image:loc>
+      <image:title>Ashish Barele (ASHISHBARELE) – Independent Indian Music Artist</image:title>
+      <image:caption>Ashish Barele (ASHISHBARELE) – Independent Indian Music Artist</image:caption>
+    </image:image>`;
+    }
+
+    xml += `
   </url>`;
   }
 

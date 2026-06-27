@@ -11,6 +11,7 @@ import { Song, Video, HeroContent, BiographyData, GalleryItem } from '../types';
 import { ArrowRight, Play, ExternalLink, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import { orderBy, limit } from 'firebase/firestore';
 import SEO from '../components/SEO';
+import { getVersionedCloudinaryUrl } from '../lib/cloudinary';
 
 export default function Home() {
   const { data: heroData } = useFirestoreCollection<HeroContent>('hero');
@@ -57,8 +58,13 @@ export default function Home() {
 
   const bio = bioData[0];
 
-  const heroDisplayImage = heroImage?.secure_url || hero.imageUrl;
-  const bioDisplayImage = bioPreviewImage?.secure_url || bio?.profileImageUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop';
+  const rawHeroUrl = heroImage?.secure_url || hero.imageUrl;
+  const heroDisplayImage = rawHeroUrl ? getVersionedCloudinaryUrl(rawHeroUrl, heroImage?.updatedAt) : rawHeroUrl;
+
+  const rawBioUrl = bioPreviewImage?.secure_url || bio?.profileImageUrl || '';
+  const bioDisplayImage = rawBioUrl
+    ? getVersionedCloudinaryUrl(rawBioUrl, bioPreviewImage?.updatedAt || bio?.updatedAt)
+    : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop';
 
   return (
     <div className="space-y-32 pb-32">
@@ -322,7 +328,7 @@ export default function Home() {
             <div className="aspect-[4/5] bg-gray-900 rounded-sm overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
               <img 
                 src={bioDisplayImage} 
-                alt="Ashish Barele" 
+                alt="Ashish Barele (ASHISHBARELE) – Independent Indian Music Artist" 
                 className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 transition-all duration-1000"
               />
             </div>

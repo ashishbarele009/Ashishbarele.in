@@ -8,6 +8,7 @@ import { useFirestoreCollection, useImage } from '../hooks/useFirestore';
 import { AboutData, BiographyData } from '../types';
 import { Target, Eye, Rocket, Star, MapPin, Calendar, Music, Mic2, FileText, PenTool } from 'lucide-react';
 import SEO from '../components/SEO';
+import { getVersionedCloudinaryUrl } from '../lib/cloudinary';
 
 export default function About() {
   const { data: aboutData, loading: aboutLoading } = useFirestoreCollection<AboutData>('about');
@@ -50,7 +51,10 @@ export default function About() {
     }
   ];
 
-  const displayImage = profileImage?.secure_url || bio?.profileImageUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop';
+  const rawProfileUrl = profileImage?.secure_url || bio?.profileImageUrl || '';
+  const displayImage = rawProfileUrl
+    ? getVersionedCloudinaryUrl(rawProfileUrl, profileImage?.updatedAt || bio?.updatedAt)
+    : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop';
 
   const defaultBioContent = `Ashish Barele, professionally known as ASHISHBARELE, is an independent Indian music artist, songwriter, rapper, composer and lyricist from Dharni, Maharashtra.
 
@@ -91,7 +95,7 @@ As an emerging independent artist, he continues releasing original music while g
             >
               <img 
                 src={displayImage} 
-                alt="Ashish Barele Profile" 
+                alt="Ashish Barele (ASHISHBARELE) – Independent Indian Music Artist" 
                 className="w-full h-full object-cover grayscale opacity-80"
               />
             </motion.div>
