@@ -169,13 +169,80 @@ export default function BrandingManager() {
     }
 
     if (type === 'logo') {
-      setLogoFile(file);
+      setLogoProgress(5);
       const objectUrl = URL.createObjectURL(file);
       setLogoPreview(objectUrl);
+      
+      try {
+        const processedLogo = await processImageFile(file);
+        const fileExt = file.type === 'image/svg+xml' ? 'svg' : 'webp';
+        setLogoProgress(20);
+        
+        const uploadedUrl = await performUpload(
+          processedLogo, 
+          `branding/logo_${Date.now()}.${fileExt}`, 
+          (progress) => setLogoProgress(20 + Math.round(progress * 0.75))
+        );
+        
+        // Save to firestore immediately
+        const brandingDocRef = doc(db, 'settings', 'branding');
+        const updateData = {
+          logoUrl: uploadedUrl,
+          updatedAt: Date.now()
+        };
+        await setDoc(brandingDocRef, updateData, { merge: true });
+        
+        setBranding(prev => ({
+          ...prev,
+          ...updateData
+        }));
+        setLogoPreview(uploadedUrl);
+        showFeedback('success', 'Logo uploaded and updated successfully!');
+      } catch (err: any) {
+        console.error('Logo upload failed:', err);
+        showFeedback('error', `Logo upload failed: ${err.message || err}`);
+        setLogoPreview(branding.logoUrl); // revert
+      } finally {
+        setLogoProgress(null);
+      }
     } else {
-      setFaviconFile(file);
+      setFaviconProgress(5);
       const objectUrl = URL.createObjectURL(file);
       setFaviconPreview(objectUrl);
+      
+      try {
+        const isIco = file.type.includes('icon') || file.name.endsWith('.ico');
+        const processedFavicon = isIco ? file : await processImageFile(file);
+        const fileExt = isIco ? 'ico' : (file.type === 'image/svg+xml' ? 'svg' : 'webp');
+        setFaviconProgress(20);
+        
+        const uploadedUrl = await performUpload(
+          processedFavicon, 
+          `branding/favicon_${Date.now()}.${fileExt}`, 
+          (progress) => setFaviconProgress(20 + Math.round(progress * 0.75))
+        );
+        
+        // Save to firestore immediately
+        const brandingDocRef = doc(db, 'settings', 'branding');
+        const updateData = {
+          faviconUrl: uploadedUrl,
+          updatedAt: Date.now()
+        };
+        await setDoc(brandingDocRef, updateData, { merge: true });
+        
+        setBranding(prev => ({
+          ...prev,
+          ...updateData
+        }));
+        setFaviconPreview(uploadedUrl);
+        showFeedback('success', 'Favicon uploaded and updated successfully!');
+      } catch (err: any) {
+        console.error('Favicon upload failed:', err);
+        showFeedback('error', `Favicon upload failed: ${err.message || err}`);
+        setFaviconPreview(branding.faviconUrl); // revert
+      } finally {
+        setFaviconProgress(null);
+      }
     }
   };
 
@@ -216,82 +283,69 @@ export default function BrandingManager() {
     setSaving(true);
     setMessage(null);
 
-    let finalLogoUrl = branding.logoUrl;
-    let finalFaviconUrl = branding.faviconUrl;
-
     try {
-      // 1. Process and upload logo if a new file is selected
-      if (logoFile) {
-        setLogoProgress(5);
-        const processedLogo = await processImageFile(logoFile);
-        const fileExt = logoFile.type === 'image/svg+xml' ? 'svg' : 'webp';
-        setLogoProgress(20);
-        const uploadedUrl = await performUpload(
-          processedLogo, 
-          `branding/logo_${Date.now()}.${fileExt}`, 
-          (progress) => setLogoProgress(20 + Math.round(progress * 0.75))
-        );
-        finalLogoUrl = uploadedUrl;
-        setLogoProgress(null);
-        setLogoFile(null);
-      }
-
-      // 2. Process and upload favicon if a new file is selected
-      if (faviconFile) {
-        setFaviconProgress(5);
-        // We bypass WebP conversion for favicons if the user uploaded an ICO file specifically for compatibility
-        const isIco = faviconFile.type.includes('icon') || faviconFile.name.endsWith('.ico');
-        const processedFavicon = isIco ? faviconFile : await processImageFile(faviconFile);
-        const fileExt = isIco ? 'ico' : (faviconFile.type === 'image/svg+xml' ? 'svg' : 'webp');
-        setFaviconProgress(20);
-        const uploadedUrl = await performUpload(
-          processedFavicon, 
-          `branding/favicon_${Date.now()}.${fileExt}`, 
-          (progress) => setFaviconProgress(20 + Math.round(progress * 0.75))
-        );
-        finalFaviconUrl = uploadedUrl;
-        setFaviconProgress(null);
-        setFaviconFile(null);
-      }
-
-      // 3. Save details to Firestore
       const brandingDocRef = doc(db, 'settings', 'branding');
-      const updatedData: BrandingData = {
+      const updatedData = {
         siteName: branding.siteName.trim(),
         browserTitle: branding.browserTitle.trim(),
-        logoUrl: finalLogoUrl,
-        faviconUrl: finalFaviconUrl,
         updatedAt: Date.now(), // Dynamic cache-busting
       };
 
       await setDoc(brandingDocRef, updatedData, { merge: true });
-      setBranding(updatedData);
+      setBranding(prev => ({
+        ...prev,
+        ...updatedData
+      }));
       
-      // Update local preview URLs in case object URLs were used
-      if (finalLogoUrl) setLogoPreview(finalLogoUrl);
-      if (finalFaviconUrl) setFaviconPreview(finalFaviconUrl);
-
-      showFeedback('success', 'Website branding updated successfully! All changes are now live.');
+      showFeedback('success', 'Text branding details updated successfully!');
     } catch (err: any) {
       console.error('Save changes failed:', err);
-      showFeedback('error', `Branding update failed: ${err.message || 'Check connection or storage permissions.'}`);
-      setLogoProgress(null);
-      setFaviconProgress(null);
+      showFeedback('error', `Branding update failed: ${err.message || 'Check connection or permissions.'}`);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleRemoveLogo = () => {
-    setLogoFile(null);
-    setLogoPreview('');
-    setBranding(prev => ({ ...prev, logoUrl: '' }));
+  const handleRemoveLogo = async () => {
+    try {
+      setLogoPreview('');
+      const brandingDocRef = doc(db, 'settings', 'branding');
+      const updateData = {
+        logoUrl: '',
+        updatedAt: Date.now()
+      };
+      await setDoc(brandingDocRef, updateData, { merge: true });
+      
+      setBranding(prev => ({ 
+        ...prev, 
+        ...updateData
+      }));
+      showFeedback('success', 'Logo removed successfully.');
+    } catch (err: any) {
+      console.error('Failed to remove logo:', err);
+      showFeedback('error', 'Failed to remove logo.');
+    }
   };
 
-  const handleRemoveFavicon = () => {
-    setFaviconFile(null);
-    setFaviconPreview('');
-    setBranding(prev => ({ ...prev, faviconUrl: '' }));
+  const handleRemoveFavicon = async () => {
+    try {
+      setFaviconPreview('');
+      const brandingDocRef = doc(db, 'settings', 'branding');
+      const updateData = {
+        faviconUrl: '',
+        updatedAt: Date.now()
+      };
+      await setDoc(brandingDocRef, updateData, { merge: true });
+      
+      setBranding(prev => ({ 
+        ...prev, 
+        ...updateData
+      }));
+      showFeedback('success', 'Favicon removed successfully.');
+    } catch (err: any) {
+      console.error('Failed to remove favicon:', err);
+      showFeedback('error', 'Failed to remove favicon.');
+    }
   };
 
   if (loadingData) {
