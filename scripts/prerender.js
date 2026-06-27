@@ -75,56 +75,94 @@ async function runPrerender() {
 
       console.log('Firebase initialized for static prerendering.');
 
-      // Fetch Profile Image
-      const q = query(
-        collection(db, 'images'),
-        where('pageName', '==', 'Biography'),
-        where('sectionName', '==', 'Profile')
-      );
-      const querySnapshot = await getDocs(q);
-      if (!querySnapshot.empty) {
-        const docData = querySnapshot.docs[0].data();
-        if (docData.secure_url) {
-          profileImageUrl = docData.secure_url;
-          if (docData.updatedAt) {
-            imageUpdatedAt = docData.updatedAt.seconds 
-              ? docData.updatedAt.seconds * 1000 
-              : new Date(docData.updatedAt).getTime() || Date.now();
-          }
-          console.log(`Prerender: Fetched profile image from 'images' collection: ${profileImageUrl}`);
-        }
-      } else {
-        // Fallback biography
-        const bioQ = query(collection(db, 'biography'));
-        const bioSnapshot = await getDocs(bioQ);
-        if (!bioSnapshot.empty) {
-          const bioData = bioSnapshot.docs[0].data();
-          if (bioData.profileImageUrl) {
-            profileImageUrl = bioData.profileImageUrl;
-            if (bioData.updatedAt) {
-              imageUpdatedAt = bioData.updatedAt.seconds
-                ? bioData.updatedAt.seconds * 1000
-                : new Date(bioData.updatedAt).getTime() || Date.now();
+      // Consolidated fetch promise for all Firestore queries
+      const fetchAllPromise = (async () => {
+        let pUrl = '';
+        let pTime = Date.now();
+        let bData = null;
+        let sData = null;
+
+        // Fetch Profile Image
+        try {
+          const q = query(
+            collection(db, 'images'),
+            where('pageName', '==', 'Biography'),
+            where('sectionName', '==', 'Profile')
+          );
+          const querySnapshot = await getDocs(q);
+          if (!querySnapshot.empty) {
+            const docData = querySnapshot.docs[0].data();
+            if (docData.secure_url) {
+              pUrl = docData.secure_url;
+              if (docData.updatedAt) {
+                pTime = docData.updatedAt.seconds 
+                  ? docData.updatedAt.seconds * 1000 
+                  : new Date(docData.updatedAt).getTime() || Date.now();
+              }
             }
-            console.log(`Prerender: Fetched profile image from 'biography' collection: ${profileImageUrl}`);
+          } else {
+            // Fallback biography
+            const bioQ = query(collection(db, 'biography'));
+            const bioSnapshot = await getDocs(bioQ);
+            if (!bioSnapshot.empty) {
+              const bioData = bioSnapshot.docs[0].data();
+              if (bioData.profileImageUrl) {
+                pUrl = bioData.profileImageUrl;
+                if (bioData.updatedAt) {
+                  pTime = bioData.updatedAt.seconds
+                    ? bioData.updatedAt.seconds * 1000
+                    : new Date(bioData.updatedAt).getTime() || Date.now();
+                }
+              }
+            }
           }
+        } catch (e) {
+          console.warn('Prerender profile image query failed:', e.message);
         }
-      }
 
-      // Fetch Branding settings
-      const brandingDoc = await getDoc(doc(db, 'settings', 'branding'));
-      if (brandingDoc.exists()) {
-        const brandingData = brandingDoc.data();
-        branding.siteName = brandingData.siteName || 'ASHISHBARELE';
-        branding.browserTitle = brandingData.browserTitle || 'Official Artist Website';
-        console.log(`Prerender: Fetched branding settings:`, branding);
-      }
+        // Fetch Branding
+        try {
+          const brandingDoc = await getDoc(doc(db, 'settings', 'branding'));
+          if (brandingDoc.exists()) {
+            bData = brandingDoc.data();
+          }
+        } catch (e) {
+          console.warn('Prerender branding query failed:', e.message);
+        }
 
-      // Fetch SEO settings
-      const seoSnapshot = await getDocs(collection(db, 'seo'));
-      if (!seoSnapshot.empty) {
-        dbSeo = seoSnapshot.docs[0].data();
-        console.log(`Prerender: Fetched SEO settings:`, dbSeo);
+        // Fetch SEO settings
+        try {
+          const seoSnapshot = await getDocs(collection(db, 'seo'));
+          if (!seoSnapshot.empty) {
+            sData = seoSnapshot.docs[0].data();
+          }
+        } catch (e) {
+          console.warn('Prerender SEO query failed:', e.message);
+        }
+
+        return { pUrl, pTime, bData, sData };
+      })();
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Firestore fetch timed out (1.5s limit)')), 1500)
+      );
+
+      const result = await Promise.race([fetchAllPromise, timeoutPromise]);
+      if (result) {
+        if (result.pUrl) {
+          profileImageUrl = result.pUrl;
+          imageUpdatedAt = result.pTime;
+          console.log(`Prerender: Fetched profile image URL: ${profileImageUrl}`);
+        }
+        if (result.bData) {
+          branding.siteName = result.bData.siteName || 'ASHISHBARELE';
+          branding.browserTitle = result.bData.browserTitle || 'Official Artist Website';
+          console.log(`Prerender: Fetched branding settings:`, branding);
+        }
+        if (result.sData) {
+          dbSeo = result.sData;
+          console.log(`Prerender: Fetched SEO settings:`, dbSeo);
+        }
       }
     }
   } catch (err) {
@@ -261,6 +299,9 @@ async function runPrerender() {
     <meta name="description" content="${pageDesc}" />
     <meta name="keywords" content="${pageKeys}" />
     <link rel="canonical" href="${pageCanonical}" />
+    <link rel="icon" href="${branding.faviconUrl || pageImage}" />
+    <link rel="shortcut icon" href="${branding.faviconUrl || pageImage}" />
+    <link rel="apple-touch-icon" href="${branding.faviconUrl || pageImage}" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />

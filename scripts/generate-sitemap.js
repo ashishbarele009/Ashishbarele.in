@@ -153,7 +153,7 @@ async function run() {
       })();
 
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Firestore fetch timed out (2s limit)')), 2000)
+        setTimeout(() => reject(new Error('Firestore fetch timed out (1.5s limit)')), 1500)
       );
 
       const result = await Promise.race([fetchImagePromise, timeoutPromise]);
