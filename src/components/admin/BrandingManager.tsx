@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   ref, 
-  uploadBytesResumable, 
+  uploadBytes, 
   getDownloadURL, 
   deleteObject 
 } from 'firebase/storage';
@@ -44,13 +44,11 @@ export default function BrandingManager() {
   const [saving, setSaving] = useState(false);
 
   // Upload states
-  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string>('');
-  const [logoProgress, setLogoProgress] = useState<number | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  const [faviconFile, setFaviconFile] = useState<File | null>(null);
   const [faviconPreview, setFaviconPreview] = useState<string>('');
-  const [faviconProgress, setFaviconProgress] = useState<number | null>(null);
+  const [uploadingFavicon, setUploadingFavicon] = useState(false);
 
   // Status notifications
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -87,64 +85,6 @@ export default function BrandingManager() {
     }, 6000);
   };
 
-  // Client-side automatic compression and conversion to WebP for standard images (excluding SVGs)
-  const processImageFile = (file: File): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      if (file.type === 'image/svg+xml') {
-        resolve(file); // Keep vector files fully intact without conversion or compression
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-
-          // Standard Max dimensions
-          const MAX_SIZE = 1200;
-          if (width > MAX_SIZE || height > MAX_SIZE) {
-            if (width > height) {
-              height = Math.round((height * MAX_SIZE) / width);
-              width = MAX_SIZE;
-            } else {
-              width = Math.round((width * MAX_SIZE) / height);
-              height = MAX_SIZE;
-            }
-          }
-
-          canvas.width = width;
-          canvas.height = height;
-
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            reject(new Error('Failed to create Canvas 2D context'));
-            return;
-          }
-
-          ctx.drawImage(img, 0, 0, width, height);
-          canvas.toBlob(
-            (blob) => {
-              if (blob) {
-                resolve(blob);
-              } else {
-                reject(new Error('Canvas toBlob conversion failed'));
-              }
-            },
-            'image/webp',
-            0.85 // High quality compression
-          );
-        };
-        img.onerror = () => reject(new Error('Failed to read image source'));
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = () => reject(new Error('Failed to read file reader'));
-      reader.readAsDataURL(file);
-    });
-  };
-
   const handleFileChange = async (
     e: React.ChangeEvent<HTMLInputElement>, 
     type: 'logo' | 'favicon'
@@ -169,19 +109,16 @@ export default function BrandingManager() {
     }
 
     if (type === 'logo') {
-      setLogoProgress(5);
+      setUploadingLogo(true);
       const objectUrl = URL.createObjectURL(file);
       setLogoPreview(objectUrl);
       
       try {
-        const processedLogo = await processImageFile(file);
-        const fileExt = file.type === 'image/svg+xml' ? 'svg' : 'webp';
-        setLogoProgress(20);
+        const fileExt = file.name.split('.').pop() || 'png';
         
         const uploadedUrl = await performUpload(
-          processedLogo, 
-          `branding/logo_${Date.now()}.${fileExt}`, 
-          (progress) => setLogoProgress(20 + Math.round(progress * 0.75))
+          file, 
+          `branding/logo_${Date.now()}.${fileExt}`
         );
         
         // Save to firestore immediately
@@ -203,23 +140,19 @@ export default function BrandingManager() {
         showFeedback('error', `Logo upload failed: ${err.message || err}`);
         setLogoPreview(branding.logoUrl); // revert
       } finally {
-        setLogoProgress(null);
+        setUploadingLogo(false);
       }
     } else {
-      setFaviconProgress(5);
+      setUploadingFavicon(true);
       const objectUrl = URL.createObjectURL(file);
       setFaviconPreview(objectUrl);
       
       try {
-        const isIco = file.type.includes('icon') || file.name.endsWith('.ico');
-        const processedFavicon = isIco ? file : await processImageFile(file);
-        const fileExt = isIco ? 'ico' : (file.type === 'image/svg+xml' ? 'svg' : 'webp');
-        setFaviconProgress(20);
+        const fileExt = file.name.split('.').pop() || 'ico';
         
         const uploadedUrl = await performUpload(
-          processedFavicon, 
-          `branding/favicon_${Date.now()}.${fileExt}`, 
-          (progress) => setFaviconProgress(20 + Math.round(progress * 0.75))
+          file, 
+          `branding/favicon_${Date.now()}.${fileExt}`
         );
         
         // Save to firestore immediately
@@ -241,41 +174,19 @@ export default function BrandingManager() {
         showFeedback('error', `Favicon upload failed: ${err.message || err}`);
         setFaviconPreview(branding.faviconUrl); // revert
       } finally {
-        setFaviconProgress(null);
+        setUploadingFavicon(false);
       }
     }
   };
 
-  // Upload runner helper
-  const performUpload = (
-    blobOrFile: Blob | File, 
-    pathName: string, 
-    onProgress: (pct: number) => void
+  // Upload runner helper using robust uploadBytes to completely bypass preflight OPTIONS/resumable hangs
+  const performUpload = async (
+    file: File | Blob, 
+    pathName: string
   ): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const fileRef = ref(storage, pathName);
-      const uploadTask = uploadBytesResumable(fileRef, blobOrFile);
-
-      uploadTask.on(
-        'state_changed',
-        (snapshot) => {
-          const pct = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-          onProgress(pct);
-        },
-        (error) => {
-          console.error('Storage upload error:', error);
-          reject(error);
-        },
-        async () => {
-          try {
-            const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref);
-            resolve(downloadUrl);
-          } catch (err) {
-            reject(err);
-          }
-        }
-      );
-    });
+    const fileRef = ref(storage, pathName);
+    const snapshot = await uploadBytes(fileRef, file);
+    return await getDownloadURL(snapshot.ref);
   };
 
   const handleSaveAll = async (e: React.FormEvent) => {
@@ -454,13 +365,10 @@ export default function BrandingManager() {
                     alt="Logo Preview" 
                     className="max-h-[80px] w-auto object-contain"
                   />
-                  {logoProgress !== null && (
+                  {uploadingLogo && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center rounded-2xl p-4">
                       <Loader2 className="animate-spin text-yellow-500 mb-2" size={24} />
-                      <div className="w-40 bg-white/10 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-yellow-500 h-full transition-all duration-300" style={{ width: `${logoProgress}%` }}></div>
-                      </div>
-                      <span className="text-[10px] text-gray-400 mt-1 font-mono">{logoProgress}% Uploaded</span>
+                      <span className="text-[10px] text-gray-400 mt-1 font-mono">Uploading Logo...</span>
                     </div>
                   )}
                 </div>
@@ -523,13 +431,10 @@ export default function BrandingManager() {
                     />
                     <span className="text-[10px] text-gray-500 uppercase font-mono tracking-widest">Favicon Preview</span>
                   </div>
-                  {faviconProgress !== null && (
+                  {uploadingFavicon && (
                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center rounded-2xl p-4">
                       <Loader2 className="animate-spin text-yellow-500 mb-2" size={24} />
-                      <div className="w-40 bg-white/10 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-yellow-500 h-full transition-all duration-300" style={{ width: `${faviconProgress}%` }}></div>
-                      </div>
-                      <span className="text-[10px] text-gray-400 mt-1 font-mono">{faviconProgress}% Uploaded</span>
+                      <span className="text-[10px] text-gray-400 mt-1 font-mono">Uploading Favicon...</span>
                     </div>
                   )}
                 </div>
