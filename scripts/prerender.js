@@ -172,7 +172,7 @@ async function runPrerender() {
   // Use fallback if still empty
   const secureProfileImageUrl = profileImageUrl 
     ? getVersionedCloudinaryUrl(profileImageUrl, imageUpdatedAt)
-    : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop';
+    : '';
 
   console.log(`Using Cloudinary secure versioned URL for all SEO items: ${secureProfileImageUrl}`);
 

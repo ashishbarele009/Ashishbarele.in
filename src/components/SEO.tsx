@@ -41,7 +41,7 @@ export default function SEO({ title, description, keywords, ogImage, canonical }
   const siteKeywords = keywords || dbSeo?.keywords || 'Ashish Barele, ASHISHBARELE, Music, Rap, Hip Hop';
   
   // Use the secure, versioned profile image by default for og:image and twitter:image
-  const siteOgImage = ogImage || versionedProfileImage || dbSeo?.ogImage || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop';
+  const siteOgImage = ogImage || versionedProfileImage || dbSeo?.ogImage || branding.logoUrl || '';
   const siteCanonical = canonical || dbSeo?.canonicalUrl || 'https://ashishbarele.in';
 
   // Structured schemas to optimize Google Search, Google Images, and Google Knowledge Panel

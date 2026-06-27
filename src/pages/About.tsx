@@ -13,12 +13,12 @@ import { getVersionedCloudinaryUrl } from '../lib/cloudinary';
 export default function About() {
   const { data: aboutData, loading: aboutLoading } = useFirestoreCollection<AboutData>('about');
   const { data: bioData, loading: bioLoading } = useFirestoreCollection<BiographyData>('biography');
-  const { data: profileImage } = useImage('Biography', 'Profile');
+  const { data: profileImage, loading: profileImageLoading } = useImage('Biography', 'Profile');
   
   const about = aboutData[0];
   const bio = bioData[0];
 
-  const loading = aboutLoading || bioLoading;
+  const loading = aboutLoading || bioLoading || profileImageLoading;
 
   if (loading) {
     return (
@@ -54,7 +54,7 @@ export default function About() {
   const rawProfileUrl = profileImage?.secure_url || bio?.profileImageUrl || '';
   const displayImage = rawProfileUrl
     ? getVersionedCloudinaryUrl(rawProfileUrl, profileImage?.updatedAt || bio?.updatedAt)
-    : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop';
+    : '';
 
   const defaultBioContent = `Ashish Barele, professionally known as ASHISHBARELE, is an independent Indian music artist, songwriter, rapper, composer and lyricist from Dharni, Maharashtra.
 
@@ -91,13 +91,19 @@ As an emerging independent artist, he continues releasing original music while g
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="aspect-[4/5] rounded-sm overflow-hidden border border-white/5 shadow-2xl bg-[#111]"
+              className="aspect-[4/5] rounded-sm overflow-hidden border border-white/5 shadow-2xl bg-[#111] flex items-center justify-center text-center p-6 text-white/30"
             >
-              <img 
-                src={displayImage} 
-                alt="Ashish Barele (ASHISHBARELE) – Independent Indian Music Artist" 
-                className="w-full h-full object-cover grayscale opacity-80"
-              />
+              {displayImage ? (
+                <img 
+                  src={displayImage} 
+                  alt="Ashish Barele (ASHISHBARELE) – Independent Indian Music Artist" 
+                  className="w-full h-full object-cover grayscale opacity-80"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <span className="text-xs font-light uppercase tracking-widest text-white/40">No photo added yet</span>
+                </div>
+              )}
             </motion.div>
 
             <div className="space-y-8 bg-black/40 p-8 rounded-sm border border-white/5 backdrop-blur-sm">

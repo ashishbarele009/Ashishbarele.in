@@ -14,18 +14,20 @@ import SEO from '../components/SEO';
 import { getVersionedCloudinaryUrl } from '../lib/cloudinary';
 
 export default function Home() {
-  const { data: heroData } = useFirestoreCollection<HeroContent>('hero');
-  const { data: latestSongs } = useFirestoreCollection<Song>('songs', orderBy('releaseDate', 'desc'), limit(3));
-  const { data: latestVideos } = useFirestoreCollection<Video>('videos', orderBy('releaseDate', 'desc'), limit(2));
-  const { data: bioData } = useFirestoreCollection<BiographyData>('biography');
-  const { data: galleryItems } = useFirestoreCollection<GalleryItem>('gallery', orderBy('createdAt', 'desc'));
+  const { data: heroData, loading: heroLoading } = useFirestoreCollection<HeroContent>('hero');
+  const { data: latestSongs, loading: songsLoading } = useFirestoreCollection<Song>('songs', orderBy('releaseDate', 'desc'), limit(3));
+  const { data: latestVideos, loading: videosLoading } = useFirestoreCollection<Video>('videos', orderBy('releaseDate', 'desc'), limit(2));
+  const { data: bioData, loading: bioLoading } = useFirestoreCollection<BiographyData>('biography');
+  const { data: galleryItems, loading: galleryLoading } = useFirestoreCollection<GalleryItem>('gallery', orderBy('createdAt', 'desc'));
   
   // Real-time image listeners for persistence
-  const { data: heroImage } = useImage('Home', 'Hero');
-  const { data: bioPreviewImage } = useImage('Biography', 'Profile');
+  const { data: heroImage, loading: heroImageLoading } = useImage('Home', 'Hero');
+  const { data: bioPreviewImage, loading: bioPreviewImageLoading } = useImage('Biography', 'Profile');
 
   const [currentSlide, setCurrentSlide] = useState(0);
   const [slideDirection, setSlideDirection] = useState(1); // 1 = next, -1 = prev
+
+  const loading = heroLoading || songsLoading || videosLoading || bioLoading || galleryLoading || heroImageLoading || bioPreviewImageLoading;
 
   useEffect(() => {
     if (galleryItems.length <= 1) return;
@@ -48,23 +50,31 @@ export default function Home() {
     setCurrentSlide((prev) => (prev + 1) % galleryItems.length);
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-black">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-yellow-500"></div>
+      </div>
+    );
+  }
+
   const hero = heroData[0] || {
     title: 'ASHISHBARELE',
     subtitle: 'Independent Music Artist | Songwriter | Rapper',
     description: 'A young independent artist from Maharashtra creating emotional Hindi and Hinglish music inspired by real-life emotions, hope, faith and personal experiences.',
-    imageUrl: 'https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=2070&auto=format&fit=crop',
+    imageUrl: '',
     backgroundUrl: ''
   };
 
   const bio = bioData[0];
 
   const rawHeroUrl = heroImage?.secure_url || hero.imageUrl;
-  const heroDisplayImage = rawHeroUrl ? getVersionedCloudinaryUrl(rawHeroUrl, heroImage?.updatedAt) : rawHeroUrl;
+  const heroDisplayImage = rawHeroUrl ? getVersionedCloudinaryUrl(rawHeroUrl, heroImage?.updatedAt) : '';
 
   const rawBioUrl = bioPreviewImage?.secure_url || bio?.profileImageUrl || '';
   const bioDisplayImage = rawBioUrl
     ? getVersionedCloudinaryUrl(rawBioUrl, bioPreviewImage?.updatedAt || bio?.updatedAt)
-    : 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=2070&auto=format&fit=crop';
+    : '';
 
   return (
     <div className="space-y-32 pb-32">
@@ -72,11 +82,15 @@ export default function Home() {
       {/* Hero Section */}
       <section className="relative min-h-[calc(100vh-80px)] flex flex-col overflow-hidden">
         <div className="absolute inset-0 z-0">
-          <img 
-            src={heroDisplayImage} 
-            alt="Artist Hero" 
-            className="w-full h-full object-cover opacity-20 scale-105"
-          />
+          {heroDisplayImage ? (
+            <img 
+              src={heroDisplayImage} 
+              alt="Artist Hero" 
+              className="w-full h-full object-cover opacity-20 scale-105"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#0c0c0c] via-black to-[#0c0c0c]" />
+          )}
           <div className="absolute inset-0 bg-[#050505]/60 backdrop-blur-[2px]" />
         </div>
 
@@ -135,14 +149,20 @@ export default function Home() {
                   <span className="text-[10px] uppercase tracking-widest text-white/40">Featured Track</span>
                   <div className="w-2 h-2 rounded-full bg-[#FACC15] animate-pulse"></div>
                 </div>
-                <div className="w-full aspect-square bg-[#111] border border-white/5 overflow-hidden mb-4 relative group">
-                  <img 
-                    src={latestSongs[0]?.coverUrl || heroDisplayImage} 
-                    alt="Featured" 
-                    className="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-700"
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-full aspect-square bg-[#111] border border-white/5 overflow-hidden mb-4 relative group flex items-center justify-center">
+                  {(latestSongs[0]?.coverUrl || heroDisplayImage) ? (
+                    <img 
+                      src={latestSongs[0]?.coverUrl || heroDisplayImage} 
+                      alt="Featured" 
+                      className="w-full h-full object-cover opacity-50 group-hover:scale-110 transition-transform duration-700"
+                    />
+                  ) : (
                     <div className="text-white/10 text-8xl font-black italic select-none">AB</div>
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    {!(latestSongs[0]?.coverUrl || heroDisplayImage) && (
+                      <div className="text-white/10 text-8xl font-black italic select-none">AB</div>
+                    )}
                   </div>
                 </div>
                 <h3 className="text-lg font-bold text-white">{latestSongs[0]?.title || 'Latest Track'}</h3>
@@ -223,33 +243,39 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-          {latestSongs.map((song, i) => (
-            <motion.div
-              key={song.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="group"
-            >
-              <div className="relative aspect-square overflow-hidden mb-6 rounded-sm bg-[#111] border border-white/5">
-                <img 
-                  src={song.coverUrl} 
-                  alt={song.title} 
-                  className="w-full h-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110 group-hover:opacity-100"
-                />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
-                  <Play className="text-[#FACC15] fill-[#FACC15]" size={48} />
+        {latestSongs.length === 0 ? (
+          <div className="w-full py-16 bg-black/40 border border-white/5 rounded-sm flex flex-col items-center justify-center text-gray-500">
+            <p className="text-sm font-light uppercase tracking-widest text-white/40">No releases added yet</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            {latestSongs.map((song, i) => (
+              <motion.div
+                key={song.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className="group"
+              >
+                <div className="relative aspect-square overflow-hidden mb-6 rounded-sm bg-[#111] border border-white/5">
+                  <img 
+                    src={song.coverUrl} 
+                    alt={song.title} 
+                    className="w-full h-full object-cover opacity-80 transition-transform duration-700 group-hover:scale-110 group-hover:opacity-100"
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-[2px]">
+                    <Play className="text-[#FACC15] fill-[#FACC15]" size={48} />
+                  </div>
                 </div>
-              </div>
-              <h4 className="text-xl font-bold mb-2 group-hover:text-[#FACC15] transition-colors">{song.title}</h4>
-              <p className="text-white/30 text-[10px] font-bold tracking-[0.2em] uppercase">
-                {song.releaseDate?.toDate ? new Date(song.releaseDate.toDate()).getFullYear() : '2024'} &bull; SINGLE
-              </p>
-            </motion.div>
-          ))}
-        </div>
+                <h4 className="text-xl font-bold mb-2 group-hover:text-[#FACC15] transition-colors">{song.title}</h4>
+                <p className="text-white/30 text-[10px] font-bold tracking-[0.2em] uppercase">
+                  {song.releaseDate?.toDate ? new Date(song.releaseDate.toDate()).getFullYear() : '2024'} &bull; SINGLE
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Decorative Divider */}
@@ -265,39 +291,45 @@ export default function Home() {
             <h3 className="text-4xl md:text-6xl font-black tracking-tighter uppercase text-center">Cinematic Journey</h3>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
-            {latestVideos.map((video) => (
-              <motion.div
-                key={video.id}
-                initial={{ opacity: 0, scale: 0.98 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                className="group"
-              >
-                <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="block relative aspect-video overflow-hidden rounded-sm border border-white/10 bg-[#111]">
-                  <img 
-                    src={video.thumbnailUrl} 
-                    alt={video.title} 
-                    className="w-full h-full object-cover opacity-60 transition-transform duration-1000 group-hover:scale-105 group-hover:opacity-80"
-                  />
-                  <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors flex items-center justify-center">
-                    <div className="w-16 h-16 border border-white/20 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-[#FACC15] group-hover:bg-[#FACC15] group-hover:text-black transition-all">
-                      <Play className="fill-current" size={24} />
+          {latestVideos.length === 0 ? (
+            <div className="w-full py-16 bg-black/40 border border-white/5 rounded-sm flex flex-col items-center justify-center text-gray-500">
+              <p className="text-sm font-light uppercase tracking-widest text-white/40">No videos added yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-16">
+              {latestVideos.map((video) => (
+                <motion.div
+                  key={video.id}
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
+                  viewport={{ once: true }}
+                  className="group"
+                >
+                  <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="block relative aspect-video overflow-hidden rounded-sm border border-white/10 bg-[#111]">
+                    <img 
+                      src={video.thumbnailUrl} 
+                      alt={video.title} 
+                      className="w-full h-full object-cover opacity-60 transition-transform duration-1000 group-hover:scale-105 group-hover:opacity-80"
+                    />
+                    <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors flex items-center justify-center">
+                      <div className="w-16 h-16 border border-white/20 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-[#FACC15] group-hover:bg-[#FACC15] group-hover:text-black transition-all">
+                        <Play className="fill-current" size={24} />
+                      </div>
                     </div>
-                  </div>
-                </a>
-                <div className="mt-8 flex justify-between items-start border-b border-white/5 pb-6">
-                  <div>
-                    <h4 className="text-2xl font-bold mb-3 group-hover:text-[#FACC15] transition-colors">{video.title}</h4>
-                    <p className="text-white/40 text-sm line-clamp-2 max-w-md">{video.description}</p>
-                  </div>
-                  <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-white/20 hover:text-[#FACC15] transition-colors">
-                    <ExternalLink size={20} />
                   </a>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                  <div className="mt-8 flex justify-between items-start border-b border-white/5 pb-6">
+                    <div>
+                      <h4 className="text-2xl font-bold mb-3 group-hover:text-[#FACC15] transition-colors">{video.title}</h4>
+                      <p className="text-white/40 text-sm line-clamp-2 max-w-md">{video.description}</p>
+                    </div>
+                    <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-white/20 hover:text-[#FACC15] transition-colors">
+                      <ExternalLink size={20} />
+                    </a>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -325,12 +357,18 @@ export default function Home() {
             viewport={{ once: true }}
             className="relative"
           >
-            <div className="aspect-[4/5] bg-gray-900 rounded-sm overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-              <img 
-                src={bioDisplayImage} 
-                alt="Ashish Barele (ASHISHBARELE) – Independent Indian Music Artist" 
-                className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 transition-all duration-1000"
-              />
+            <div className="aspect-[4/5] bg-gray-900 rounded-sm overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)] flex items-center justify-center text-center p-6 text-white/30">
+              {bioDisplayImage ? (
+                <img 
+                  src={bioDisplayImage} 
+                  alt="Ashish Barele (ASHISHBARELE) – Independent Indian Music Artist" 
+                  className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 transition-all duration-1000"
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-3">
+                  <span className="text-xs font-light uppercase tracking-widest text-white/40">No photo added yet</span>
+                </div>
+              )}
             </div>
             <div className="absolute -bottom-10 -left-10 bg-[#080808] border border-white/10 text-white p-10 rounded-sm hidden md:block backdrop-blur-xl">
               <div className="text-5xl font-black mb-1 text-[#FACC15]">2023</div>
