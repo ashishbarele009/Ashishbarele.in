@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { auth, db } from '../firebase';
+import { auth, db, storage } from '../firebase';
 
-export { auth, db };
+export { auth, db, storage };
 

@@ -19,6 +19,7 @@ import ProtectedLayout from './components/admin/ProtectedLayout';
 import { useEffect, useState } from 'react';
 import { auth } from './lib/firebase';
 import { onAuthStateChanged, User } from 'firebase/auth';
+import BrandingProvider from './components/layout/BrandingProvider';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -42,32 +43,34 @@ export default function App() {
 
   return (
     <HelmetProvider>
-      <Router>
-        <div className="min-h-screen bg-black text-gray-100 flex flex-col">
-          <Navbar />
-          <main className="flex-grow">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/music" element={<Music />} />
-              <Route path="/videos" element={<Videos />} />
-              <Route path="/gallery" element={<Gallery />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route 
-                path="/admin-login" 
-                element={user && user.email === 'ashishbarele09@gmail.com' ? <Navigate to="/admin-panel" /> : <AdminLogin />} 
-              />
-              
-              <Route element={<ProtectedLayout user={user} />}>
-                <Route path="/admin-panel" element={<AdminDashboard />} />
-              </Route>
-              
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
+      <BrandingProvider>
+        <Router>
+          <div className="min-h-screen bg-black text-gray-100 flex flex-col">
+            <Navbar />
+            <main className="flex-grow">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/music" element={<Music />} />
+                <Route path="/videos" element={<Videos />} />
+                <Route path="/gallery" element={<Gallery />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route 
+                  path="/admin-login" 
+                  element={user && user.email === 'ashishbarele09@gmail.com' ? <Navigate to="/admin-panel" /> : <AdminLogin />} 
+                />
+                
+                <Route element={<ProtectedLayout user={user} />}>
+                  <Route path="/admin-panel" element={<AdminDashboard />} />
+                </Route>
+                
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </main>
+            <Footer />
+          </div>
+        </Router>
+      </BrandingProvider>
     </HelmetProvider>
   );
 }

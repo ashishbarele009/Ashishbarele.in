@@ -6,6 +6,7 @@
 import { Helmet } from 'react-helmet-async';
 import { useFirestoreCollection } from '../hooks/useFirestore';
 import { SEOData } from '../types';
+import { useBranding } from './layout/BrandingProvider';
 
 interface SEOProps {
   title?: string;
@@ -18,8 +19,14 @@ interface SEOProps {
 export default function SEO({ title, description, keywords, ogImage, canonical }: SEOProps) {
   const { data: seoData } = useFirestoreCollection<SEOData>('seo');
   const dbSeo = seoData[0];
+  const { branding } = useBranding();
 
-  const siteTitle = title ? `${title} | ASHISHBARELE` : (dbSeo?.metaTitle || 'ASHISHBARELE | Official Website');
+  const siteTitle = title 
+    ? `${title} | ${branding.siteName}` 
+    : (branding.browserTitle 
+        ? `${branding.siteName} | ${branding.browserTitle}` 
+        : (dbSeo?.metaTitle || 'ASHISHBARELE | Official Artist Website')
+      );
   const siteDescription = description || dbSeo?.metaDescription || 'Independent Music Artist, Songwriter and Rapper from Maharashtra.';
   const siteKeywords = keywords || dbSeo?.keywords || 'Ashish Barele, ASHISHBARELE, Music, Rap, Hip Hop';
   const siteOgImage = ogImage || dbSeo?.ogImage || '';
@@ -28,7 +35,7 @@ export default function SEO({ title, description, keywords, ogImage, canonical }
   const schemaData = {
     "@context": "https://schema.org",
     "@type": "MusicArtist",
-    "name": "ASHISHBARELE",
+    "name": branding.siteName,
     "alternateName": "Ashish Barele",
     "url": siteCanonical,
     "description": siteDescription,

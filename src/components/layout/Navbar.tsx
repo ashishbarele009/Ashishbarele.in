@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Menu, X } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useBranding } from './BrandingProvider';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -26,14 +27,23 @@ const navLinks = [
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { branding } = useBranding();
 
   return (
     <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex-shrink-0">
+          <Link to="/" className="flex-shrink-0 flex items-center gap-3">
+            {branding.logoUrl && (
+              <img 
+                src={`${branding.logoUrl}?t=${branding.updatedAt || Date.now()}`} 
+                alt={`${branding.siteName} Logo`} 
+                className="h-[36px] sm:h-[42px] md:h-[48px] w-auto object-contain flex-shrink-0"
+                referrerPolicy="no-referrer"
+              />
+            )}
             <span className="text-xl md:text-2xl font-bold tracking-[0.2em] text-[#FACC15] hover:text-white transition-colors">
-              ASHISHBARELE
+              {branding.siteName}
             </span>
           </Link>
 

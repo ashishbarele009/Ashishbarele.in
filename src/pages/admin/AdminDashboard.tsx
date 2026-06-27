@@ -33,6 +33,7 @@ import ContactMessages from '../../components/admin/ContactMessages';
 import SEOManager from '../../components/admin/SEOManager';
 import DashboardOverview from '../../components/admin/DashboardOverview';
 import HomeEditor from '../../components/admin/HomeEditor';
+import BrandingManager from '../../components/admin/BrandingManager';
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -43,6 +44,7 @@ const tabs = [
   { id: 'about', label: 'About & Bio Editor', icon: Info },
   { id: 'contact', label: 'Contact Messages', icon: Mail },
   { id: 'seo', label: 'SEO Manager', icon: Search },
+  { id: 'branding', label: 'Website Branding', icon: Settings },
 ];
 
 export default function AdminDashboard() {
@@ -69,6 +71,7 @@ export default function AdminDashboard() {
       case 'about': return <AboutEditor />;
       case 'contact': return <ContactMessages />;
       case 'seo': return <SEOManager />;
+      case 'branding': return <BrandingManager />;
       default: return <DashboardOverview />;
     }
   };
