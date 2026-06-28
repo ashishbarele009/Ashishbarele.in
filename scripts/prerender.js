@@ -49,8 +49,10 @@ function getVersionedCloudinaryUrl(url, updatedAt) {
 function downloadFile(url, destPath) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath);
-    https.get(url, (response) => {
+    const req = https.get(url, (response) => {
       if (response.statusCode !== 200) {
+        file.close();
+        fs.unlink(destPath, () => {});
         reject(new Error(`Failed to download: Status Code ${response.statusCode}`));
         return;
       }
@@ -58,9 +60,19 @@ function downloadFile(url, destPath) {
       file.on('finish', () => {
         file.close(resolve);
       });
-    }).on('error', (err) => {
-      fs.unlink(destPath, () => {}); // delete partial file on error
+    });
+
+    req.on('error', (err) => {
+      file.close();
+      fs.unlink(destPath, () => {});
       reject(err);
+    });
+
+    req.setTimeout(3000, () => {
+      req.destroy();
+      file.close();
+      fs.unlink(destPath, () => {});
+      reject(new Error('Download timed out after 3.0s'));
     });
   });
 }
@@ -165,7 +177,7 @@ async function runPrerender() {
       })();
 
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Firestore fetch timed out (10s limit)')), 10000)
+        setTimeout(() => reject(new Error('Firestore fetch timed out (3s limit)')), 3000)
       );
 
       const result = await Promise.race([fetchAllPromise, timeoutPromise]);
