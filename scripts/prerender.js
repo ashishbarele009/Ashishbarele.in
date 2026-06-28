@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import https from 'https';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 
@@ -42,6 +43,26 @@ function getVersionedCloudinaryUrl(url, updatedAt) {
     }
   }
   return `${secureUrl}?v=${t}`;
+}
+
+// Helper to download a file from a secure URL to a local destination path
+function downloadFile(url, destPath) {
+  return new Promise((resolve, reject) => {
+    const file = fs.createWriteStream(destPath);
+    https.get(url, (response) => {
+      if (response.statusCode !== 200) {
+        reject(new Error(`Failed to download: Status Code ${response.statusCode}`));
+        return;
+      }
+      response.pipe(file);
+      file.on('finish', () => {
+        file.close(resolve);
+      });
+    }).on('error', (err) => {
+      fs.unlink(destPath, () => {}); // delete partial file on error
+      reject(err);
+    });
+  });
 }
 
 async function runPrerender() {
@@ -157,7 +178,40 @@ async function runPrerender() {
         if (result.bData) {
           branding.siteName = result.bData.siteName || 'ASHISHBARELE';
           branding.browserTitle = result.bData.browserTitle || 'Official Artist Website';
+          branding.faviconUrl = result.bData.faviconUrl || '';
+          branding.logoUrl = result.bData.logoUrl || '';
+          branding.updatedAt = result.bData.updatedAt || Date.now();
           console.log(`Prerender: Fetched branding settings:`, branding);
+
+          // Download active favicon files if faviconUrl is present
+          if (branding.faviconUrl) {
+            try {
+              console.log(`Prerender: Downloading active favicon from URL: ${branding.faviconUrl}`);
+              const cacheBustedFavicon = getVersionedCloudinaryUrl(branding.faviconUrl, branding.updatedAt);
+              const targets = [
+                'favicon.ico',
+                'favicon-16x16.png',
+                'favicon-32x32.png',
+                'apple-touch-icon.png',
+                'android-chrome-192x192.png',
+                'android-chrome-512x512.png'
+              ];
+              for (const target of targets) {
+                const publicPath = path.join(__dirname, '../public', target);
+                await downloadFile(cacheBustedFavicon, publicPath);
+                console.log(`Prerender: Synced ${target} to /public`);
+                
+                // Copy to dist folder as well so that it is included in the current deployment directory
+                const distPath = path.join(DIST_DIR, target);
+                if (fs.existsSync(DIST_DIR)) {
+                  fs.copyFileSync(publicPath, distPath);
+                  console.log(`Prerender: Synced ${target} to /dist`);
+                }
+              }
+            } catch (dlErr) {
+              console.warn('Prerender Warning: Could not sync active favicon from Cloudinary:', dlErr.message);
+            }
+          }
         }
         if (result.sData) {
           dbSeo = result.sData;
@@ -300,9 +354,12 @@ async function runPrerender() {
     <meta name="keywords" content="${pageKeys}" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="${pageCanonical}" />
-    <link rel="icon" href="${branding.faviconUrl || pageImage}" />
-    <link rel="shortcut icon" href="${branding.faviconUrl || pageImage}" />
-    <link rel="apple-touch-icon" href="${branding.faviconUrl || pageImage}" />
+    <link rel="icon" href="/favicon.ico?v=4" sizes="any" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=4" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=4" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=4" />
+    <link rel="manifest" href="/site.webmanifest?v=4" />
+    <meta name="theme-color" content="#000000" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
@@ -335,6 +392,11 @@ async function runPrerender() {
     modifiedHtml = modifiedHtml.replace(/<meta name="description".*?>/gi, '');
     modifiedHtml = modifiedHtml.replace(/<meta name="keywords".*?>/gi, '');
     modifiedHtml = modifiedHtml.replace(/<link rel="canonical".*?>/gi, '');
+    modifiedHtml = modifiedHtml.replace(/<link rel="icon".*?>/gi, '');
+    modifiedHtml = modifiedHtml.replace(/<link rel="shortcut icon".*?>/gi, '');
+    modifiedHtml = modifiedHtml.replace(/<link rel="apple-touch-icon".*?>/gi, '');
+    modifiedHtml = modifiedHtml.replace(/<link rel="manifest".*?>/gi, '');
+    modifiedHtml = modifiedHtml.replace(/<meta name="theme-color".*?>/gi, '');
 
     // Insert new SEO block right after <head>
     modifiedHtml = modifiedHtml.replace(/<head>/i, `<head>${seoBlock}`);

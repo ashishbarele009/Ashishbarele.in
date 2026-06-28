@@ -75,13 +75,20 @@ export default function BrandingProvider({ children }: { children: React.ReactNo
       const cacheBustedFavicon = `${branding.faviconUrl}?t=${branding.updatedAt || Date.now()}`;
       
       const updateLinkRelation = (rel: string, href: string) => {
-        let link: HTMLLinkElement | null = document.querySelector(`link[rel="${rel}"]`);
-        if (!link) {
-          link = document.createElement('link');
+        const existingLinks = document.querySelectorAll(`link[rel="${rel}"]`);
+        if (existingLinks.length > 0) {
+          (existingLinks[0] as HTMLLinkElement).href = href;
+          if (rel === 'icon') {
+            for (let i = 1; i < existingLinks.length; i++) {
+              existingLinks[i].remove();
+            }
+          }
+        } else {
+          const link = document.createElement('link');
           link.rel = rel;
           document.head.appendChild(link);
+          link.href = href;
         }
-        link.href = href;
       };
 
       // Handle standard icon, shortcut icon, and apple touch icon for full compatibility
