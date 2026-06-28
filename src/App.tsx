@@ -33,43 +33,41 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-black text-yellow-500">
-        <div className="animate-pulse text-2xl font-bold tracking-widest">ASHISHBARELE</div>
-      </div>
-    );
-  }
-
   return (
     <HelmetProvider>
       <BrandingProvider>
-        <Router>
-          <div className="min-h-screen bg-black text-gray-100 flex flex-col">
-            <Navbar />
-            <main className="flex-grow">
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/music" element={<Music />} />
-                <Route path="/videos" element={<Videos />} />
-                <Route path="/gallery" element={<Gallery />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route 
-                  path="/admin-login" 
-                  element={user && user.email === 'ashishbarele09@gmail.com' ? <Navigate to="/admin-panel" /> : <AdminLogin />} 
-                />
-                
-                <Route element={<ProtectedLayout user={user} />}>
-                  <Route path="/admin-panel" element={<AdminDashboard />} />
-                </Route>
-                
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </main>
-            <Footer />
+        {loading ? (
+          <div className="flex items-center justify-center min-h-screen bg-black text-yellow-500">
+            <div className="animate-pulse text-2xl font-bold tracking-widest">ASHISHBARELE</div>
           </div>
-        </Router>
+        ) : (
+          <Router>
+            <div className="min-h-screen bg-black text-gray-100 flex flex-col">
+              <Navbar />
+              <main className="flex-grow">
+                <Routes>
+                  <Route path="/" element={<Home />} />
+                  <Route path="/music" element={<Music />} />
+                  <Route path="/videos" element={<Videos />} />
+                  <Route path="/gallery" element={<Gallery />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/contact" element={<Contact />} />
+                  <Route 
+                    path="/admin-login" 
+                    element={user && user.email === 'ashishbarele09@gmail.com' ? <Navigate to="/admin-panel" /> : <AdminLogin />} 
+                  />
+                  
+                  <Route element={<ProtectedLayout user={user} />}>
+                    <Route path="/admin-panel" element={<AdminDashboard />} />
+                  </Route>
+                  
+                  <Route path="*" element={<Navigate to="/" />} />
+                </Routes>
+              </main>
+              <Footer />
+            </div>
+          </Router>
+        )}
       </BrandingProvider>
     </HelmetProvider>
   );

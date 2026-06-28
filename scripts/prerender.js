@@ -165,7 +165,7 @@ async function runPrerender() {
       })();
 
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Firestore fetch timed out (1.5s limit)')), 1500)
+        setTimeout(() => reject(new Error('Firestore fetch timed out (10s limit)')), 10000)
       );
 
       const result = await Promise.race([fetchAllPromise, timeoutPromise]);

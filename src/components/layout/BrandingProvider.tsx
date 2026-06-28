@@ -75,20 +75,29 @@ export default function BrandingProvider({ children }: { children: React.ReactNo
       const cacheBustedFavicon = `${branding.faviconUrl}?t=${branding.updatedAt || Date.now()}`;
       
       const updateLinkRelation = (rel: string, href: string) => {
+        // Find and remove all existing links with this rel to avoid duplicates or cache mixing
         const existingLinks = document.querySelectorAll(`link[rel="${rel}"]`);
-        if (existingLinks.length > 0) {
-          (existingLinks[0] as HTMLLinkElement).href = href;
-          if (rel === 'icon') {
-            for (let i = 1; i < existingLinks.length; i++) {
-              existingLinks[i].remove();
-            }
+        existingLinks.forEach(link => link.remove());
+
+        // Create a brand-new, clean link element
+        const link = document.createElement('link');
+        link.rel = rel;
+        link.href = href;
+
+        // Apply clean type and sizes for maximum compatibility
+        if (rel === 'apple-touch-icon') {
+          link.setAttribute('sizes', '180x180');
+        } else if (rel === 'icon') {
+          if (href.includes('.png')) {
+            link.type = 'image/png';
+          } else if (href.includes('.ico')) {
+            link.type = 'image/x-icon';
+          } else if (href.includes('.svg')) {
+            link.type = 'image/svg+xml';
           }
-        } else {
-          const link = document.createElement('link');
-          link.rel = rel;
-          document.head.appendChild(link);
-          link.href = href;
         }
+
+        document.head.appendChild(link);
       };
 
       // Handle standard icon, shortcut icon, and apple touch icon for full compatibility
