@@ -78,12 +78,17 @@ export default function BrandingProvider({ children }: { children: React.ReactNo
   }, [branding.siteName, branding.browserTitle]);
 
   useEffect(() => {
-    // Only update dynamically if branding has loaded and the faviconUrl has ACTUALLY changed from the initial Firestore value
-    if (
-      branding.faviconUrl &&
-      initialFaviconRef.current !== null &&
-      branding.faviconUrl !== initialFaviconRef.current
-    ) {
+    // Only update dynamically if branding has loaded and is different from the current static build version
+    if (branding.faviconUrl) {
+      const buildMeta = document.querySelector('meta[name="build-branding-version"]');
+      const buildVersion = buildMeta ? buildMeta.getAttribute('content') : '';
+      const firestoreVersion = branding.updatedAt ? branding.updatedAt.toString() : '';
+
+      // If the static built index.html already has the correct version, do nothing to prevent any flash/refetch
+      if (buildVersion && firestoreVersion && buildVersion === firestoreVersion) {
+        return;
+      }
+
       const cacheBustedFavicon = `${branding.faviconUrl}?t=${branding.updatedAt || Date.now()}`;
       
       const updateLinkRelationInPlace = (rel: string, href: string) => {

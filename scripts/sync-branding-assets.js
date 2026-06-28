@@ -133,6 +133,28 @@ async function run() {
           console.log(`✓ Copied to /dist/${target}`);
         }
       }
+
+      // Update index.html dynamically to bust browser cache
+      const indexHtmlPath = path.resolve(__dirname, '../index.html');
+      if (fs.existsSync(indexHtmlPath)) {
+        let htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
+        const updatedAt = fields.updatedAt?.integerValue || Date.now().toString();
+        
+        // Replace query parameters for favicons and manifest
+        htmlContent = htmlContent.replace(/\?v=[a-zA-Z0-9_-]+/g, `?v=${updatedAt}`);
+        
+        // Update or insert build branding version meta tag
+        if (htmlContent.includes('name="build-branding-version"')) {
+          htmlContent = htmlContent.replace(/name="build-branding-version"\s+content="[^"]*"/g, `name="build-branding-version" content="${updatedAt}"`);
+        } else {
+          // Insert it in head if not present
+          htmlContent = htmlContent.replace('</head>', `  <meta name="build-branding-version" content="${updatedAt}" />\n  </head>`);
+        }
+        
+        fs.writeFileSync(indexHtmlPath, htmlContent, 'utf8');
+        console.log(`✓ Updated /index.html with branding version: ${updatedAt}`);
+      }
+
       console.log('--- Branding Asset Sync Successful ---');
     } else {
       console.warn('No active faviconUrl found in Firestore settings/branding.');
