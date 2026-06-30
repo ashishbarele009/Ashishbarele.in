@@ -41,7 +41,7 @@ export default function Gallery() {
         >
           <h2 className="text-[#FACC15] font-bold tracking-[0.4em] mb-4 text-xs uppercase">Memories</h2>
           <h1 className="text-4xl xs:text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none">
-            Stills in<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">Motion</span>
+            <span className="stripe-text">Stills</span> in<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">Motion</span>
           </h1>
 
           {/* Categories */}

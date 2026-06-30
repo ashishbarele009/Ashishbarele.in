@@ -33,16 +33,20 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 bg-black/40 backdrop-blur-md border-b border-white/5">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex-shrink-0 flex items-center gap-3">
+          <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
             {branding.logoUrl && (
-              <img 
+              <motion.img 
+                whileHover={{ scale: 1.05, rotate: 5 }}
                 src={`${branding.logoUrl}?t=${branding.updatedAt || Date.now()}`} 
                 alt={`${branding.siteName} Logo`} 
                 className="h-[36px] sm:h-[42px] md:h-[48px] w-auto object-contain flex-shrink-0"
                 referrerPolicy="no-referrer"
               />
             )}
-            <span className="text-xl md:text-2xl font-bold tracking-[0.2em] text-[#FACC15] hover:text-white transition-colors">
+            <span className={cn(
+              "text-xl md:text-2xl font-bold tracking-[0.2em] transition-colors",
+              branding.siteName?.toUpperCase() === 'ASHISHBARELE' ? "stripe-text" : "text-[#FACC15] hover:text-white"
+            )}>
               {branding.siteName}
             </span>
           </Link>

@@ -66,7 +66,7 @@ export default function Contact() {
         >
           <h2 className="text-[#FACC15] font-bold tracking-[0.4em] mb-4 text-xs uppercase">Connection</h2>
           <h1 className="text-4xl xs:text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none">
-            Drop a<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">Message</span>
+            <span className="stripe-text">Drop</span> a<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">Message</span>
           </h1>
         </motion.div>
 
@@ -85,7 +85,11 @@ export default function Contact() {
             </div>
 
             <div className="space-y-6">
-              <a href="mailto:ashishbarele09@gmail.com" className="flex items-center gap-6 p-8 bg-black/40 rounded-sm border border-white/5 hover:border-[#FACC15]/30 transition-all group backdrop-blur-sm">
+              <motion.a 
+                whileHover={{ x: 10, scale: 1.02 }}
+                href="mailto:ashishbarele09@gmail.com" 
+                className="flex items-center gap-6 p-8 bg-black/40 rounded-sm border border-white/5 hover:border-[#FACC15]/30 transition-all group backdrop-blur-sm shadow-xl"
+              >
                 <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-[#FACC15] group-hover:bg-[#FACC15] group-hover:text-black transition-all">
                   <Mail size={24} />
                 </div>
@@ -93,10 +97,16 @@ export default function Contact() {
                   <p className="text-[10px] text-white/30 tracking-[0.2em] font-black uppercase mb-1">EMAIL ME</p>
                   <p className="text-xl font-bold uppercase tracking-tight">ashishbarele09@gmail.com</p>
                 </div>
-              </a>
+              </motion.a>
               
               <div className="flex gap-6">
-                <a href="https://www.instagram.com/ashish__barele" target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center gap-6 p-8 bg-black/40 rounded-sm border border-white/5 hover:border-[#FACC15]/30 transition-all group backdrop-blur-sm">
+                <motion.a 
+                  whileHover={{ y: -5, scale: 1.02 }}
+                  href="https://www.instagram.com/ashish__barele" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="flex-1 flex items-center gap-6 p-8 bg-black/40 rounded-sm border border-white/5 hover:border-[#FACC15]/30 transition-all group backdrop-blur-sm shadow-xl"
+                >
                   <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-full flex items-center justify-center text-[#FACC15] group-hover:bg-[#FACC15] group-hover:text-black transition-all">
                     <Instagram size={24} />
                   </div>
@@ -104,7 +114,7 @@ export default function Contact() {
                     <p className="text-[10px] text-white/30 tracking-[0.2em] font-black uppercase mb-1">INSTAGRAM</p>
                     <p className="text-lg font-bold uppercase tracking-tight">@ashish__barele</p>
                   </div>
-                </a>
+                </motion.a>
               </div>
             </div>
           </motion.div>

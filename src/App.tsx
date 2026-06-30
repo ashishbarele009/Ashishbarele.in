@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
+import { motion, AnimatePresence } from 'motion/react';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import Home from './pages/Home';
@@ -38,31 +39,14 @@ export default function App() {
       <BrandingProvider>
         {loading ? (
           <div className="flex items-center justify-center min-h-screen bg-black text-yellow-500">
-            <div className="animate-pulse text-2xl font-bold tracking-widest">ASHISHBARELE</div>
+            <div className="stripe-text text-3xl font-bold tracking-[0.3em] uppercase">ASHISHBARELE</div>
           </div>
         ) : (
           <Router>
-            <div className="min-h-screen bg-black text-gray-100 flex flex-col">
+            <div className="min-h-screen bg-black text-gray-100 flex flex-col overflow-x-hidden">
               <Navbar />
-              <main className="flex-grow">
-                <Routes>
-                  <Route path="/" element={<Home />} />
-                  <Route path="/music" element={<Music />} />
-                  <Route path="/videos" element={<Videos />} />
-                  <Route path="/gallery" element={<Gallery />} />
-                  <Route path="/about" element={<About />} />
-                  <Route path="/contact" element={<Contact />} />
-                  <Route 
-                    path="/admin-login" 
-                    element={user && user.email === 'ashishbarele09@gmail.com' ? <Navigate to="/admin-panel" /> : <AdminLogin />} 
-                  />
-                  
-                  <Route element={<ProtectedLayout user={user} />}>
-                    <Route path="/admin-panel" element={<AdminDashboard />} />
-                  </Route>
-                  
-                  <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
+              <main className="flex-grow flex flex-col">
+                <AnimatedRoutes user={user} />
               </main>
               <Footer />
             </div>
@@ -70,5 +54,41 @@ export default function App() {
         )}
       </BrandingProvider>
     </HelmetProvider>
+  );
+}
+
+function AnimatedRoutes({ user }: { user: User | null }) {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -15 }}
+        transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="flex-grow flex flex-col"
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Home />} />
+          <Route path="/music" element={<Music />} />
+          <Route path="/videos" element={<Videos />} />
+          <Route path="/gallery" element={<Gallery />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route 
+            path="/admin-login" 
+            element={user && user.email === 'ashishbarele09@gmail.com' ? <Navigate to="/admin-panel" /> : <AdminLogin />} 
+          />
+          
+          <Route element={<ProtectedLayout user={user} />}>
+            <Route path="/admin-panel" element={<AdminDashboard />} />
+          </Route>
+          
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
   );
 }

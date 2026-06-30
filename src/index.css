@@ -32,4 +32,32 @@
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     @apply bg-yellow-500/30;
   }
+
+  @keyframes stripes {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 200% 50%;
+    }
+  }
+
+  .stripe-text {
+    background: linear-gradient(
+      90deg,
+      #FACC15 0%,
+      #FACC15 15%,
+      #ffffff 30%,
+      #FACC15 45%,
+      #FACC15 60%,
+      #ffffff 75%,
+      #FACC15 90%,
+      #FACC15 100%
+    );
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: stripes 6s linear infinite;
+  }
 }

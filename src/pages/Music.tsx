@@ -32,7 +32,7 @@ export default function Music() {
         >
           <h2 className="text-[#FACC15] font-bold tracking-[0.4em] mb-4 text-xs uppercase">Discography</h2>
           <h1 className="text-4xl xs:text-5xl md:text-8xl font-black tracking-tighter uppercase leading-none">
-            Sonic<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">Library</span>
+            <span className="stripe-text">Sonic</span><br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">Library</span>
           </h1>
         </motion.div>
 
@@ -48,8 +48,9 @@ export default function Music() {
                 key={song.id}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
+                whileHover={{ y: -10, scale: 1.02 }}
                 transition={{ delay: i * 0.1 }}
-                className="group relative bg-white/5 rounded-sm overflow-hidden border border-white/5 hover:border-[#FACC15]/30 transition-all duration-500"
+                className="group relative bg-white/5 rounded-sm overflow-hidden border border-white/5 hover:border-[#FACC15]/30 transition-all duration-500 shadow-2xl"
               >
                 <div className="aspect-square relative overflow-hidden">
                   <img 

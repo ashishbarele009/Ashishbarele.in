@@ -139,7 +139,10 @@ As an emerging independent artist, he continues releasing original music while g
               viewport={{ once: true }}
             >
               <h2 className="text-[#FACC15] font-bold tracking-[0.4em] mb-4 text-xs uppercase">The Story</h2>
-              <h1 className="text-6xl md:text-[80px] font-black tracking-tighter mb-12 leading-[0.9] uppercase">ASHISH <br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">BARELE</span></h1>
+              <h1 className="text-6xl md:text-[80px] font-black tracking-tighter mb-12 leading-[0.9] uppercase">
+                <span className="stripe-text">ASHISH</span> <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">BARELE</span>
+              </h1>
               <div className="prose prose-invert max-w-none">
                 {(bio?.content || defaultBioContent).split('\n\n').map((para, i) => (
                   <p key={i} className="text-white/50 text-xl leading-relaxed mb-8 font-light">
@@ -165,11 +168,12 @@ As an emerging independent artist, he continues releasing original music while g
                 key={section.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -10, scale: 1.02 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
                 className="bg-black/40 p-12 rounded-sm border border-white/5 hover:border-[#FACC15]/20 transition-all group backdrop-blur-sm"
               >
-                <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mb-8 group-hover:scale-110 transition-all">
+                <div className="w-16 h-16 bg-white/5 border border-white/10 rounded-full flex items-center justify-center mb-8 group-hover:scale-110 transition-all shadow-[0_0_20px_rgba(250,204,21,0.1)]">
                   {section.icon}
                 </div>
                 <h3 className="text-2xl font-black mb-6 uppercase tracking-tight">{section.title}</h3>

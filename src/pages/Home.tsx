@@ -110,9 +110,11 @@ export default function Home() {
                   <div className="w-8 h-[1px] bg-[#FACC15]/40"></div>
                   <span className="text-[#FACC15] text-[10px] md:text-xs font-bold tracking-[0.4em] uppercase opacity-80">Official Artist Website</span>
                 </div>
-                <h1 className="text-[40px] xs:text-[50px] md:text-[100px] lg:text-[120px] leading-[0.85] font-black tracking-tighter text-white uppercase mb-8">
-                  {hero.title.substring(0, hero.title.length / 2)}<br/>
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20">
+                <h1 className="text-[40px] xs:text-[50px] md:text-[100px] lg:text-[120px] leading-[0.85] font-black tracking-tighter uppercase mb-8">
+                  <span className="stripe-text block">
+                    {hero.title.substring(0, hero.title.length / 2)}
+                  </span>
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-white/20 block mt-2">
                     {hero.title.substring(hero.title.length / 2)}
                   </span>
                 </h1>
@@ -252,10 +254,16 @@ export default function Home() {
             {latestSongs.map((song, i) => (
               <motion.div
                 key={song.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+                initial={{ opacity: 0, y: 30, scale: 0.9 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                whileHover={{ y: -12, scale: 1.02 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ 
+                  duration: 0.5, 
+                  delay: i * 0.1,
+                  type: "spring",
+                  stiffness: 100
+                }}
                 className="group"
               >
                 <div className="relative aspect-square overflow-hidden mb-6 rounded-sm bg-[#111] border border-white/5">
@@ -300,9 +308,11 @@ export default function Home() {
               {latestVideos.map((video) => (
                 <motion.div
                   key={video.id}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  whileInView={{ opacity: 1, scale: 1 }}
-                  viewport={{ once: true }}
+                  initial={{ opacity: 0, y: 30, scale: 0.95 }}
+                  whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                  whileHover={{ y: -8 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.6 }}
                   className="group"
                 >
                   <a href={video.youtubeUrl} target="_blank" rel="noopener noreferrer" className="block relative aspect-video overflow-hidden rounded-sm border border-white/10 bg-[#111]">
